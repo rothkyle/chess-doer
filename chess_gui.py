@@ -11,14 +11,16 @@ SQUARE_SIZE = WIDTH // COLS
 
 WHITE = (227, 193, 111)
 BLACK = (184, 139, 74)
-HIGHLIGHTED = (50, 100, 100)
+EMPTY_HIGHLIGHTED_COLOR = (50, 100, 100)
+PIECE_HIGHLIGHTED_COLOR = (255, 100, 50)
 PIECE_IMAGE_SIZE = (WIDTH // COLS, HEIGHT // ROWS)
 CAPTURE_SOUND = pygame.mixer.Sound("piece_sounds/capture.mp3")
 NO_CAPTURE_SOUND = pygame.mixer.Sound("piece_sounds/nocapture.mp3")
 CHECK_SOUND = pygame.mixer.Sound("piece_sounds/check.mp3")
 
 scrn = pygame.display.set_mode((WIDTH,HEIGHT))
-pygame.display.set_caption('chess')
+pygame.display.set_caption('Chess')
+pygame.display.set_icon(pygame.image.load("chess_icon.png"))
 
 
 # convert board to list so we can iterate over it and place the pieces on top of checkerboard
@@ -56,9 +58,16 @@ def update_board(board, highlighted):
     
     # Draw highlighted squares
     for square in highlighted:
+        # Does the square have a piece on it?
+        is_piece = game.board.piece_at(chess.parse_square(square[0:2]))
+
+        # Convert square location in chess notation to screen location
         rank, file = ord(square[0]) - 97, abs(8 - int(square[1]))
         x, y = rank*SQUARE_SIZE + SQUARE_SIZE/2, file*SQUARE_SIZE + SQUARE_SIZE/2
-        pygame.draw.circle(scrn, HIGHLIGHTED, (x,y), SQUARE_SIZE / 6)
+
+        # Select color of highlight based off if the square has a piece on it or not
+        if is_piece: pygame.draw.circle(scrn, PIECE_HIGHLIGHTED_COLOR, (x,y), SQUARE_SIZE / 6)
+        else: pygame.draw.circle(scrn, EMPTY_HIGHLIGHTED_COLOR, (x,y), SQUARE_SIZE / 6)
     pygame.display.flip()
 
 # get_square(mouse_pos): Returns the square the mouse is currently at in chess notation
@@ -78,7 +87,7 @@ def get_legal_moves(square, board):
     if moves: return moves
     else: return None
 
-game = cm.BotGame(cm.random_move, cm.random_move, 'b')
+game = cm.BotGame(cm.minimax, cm.minimax, 'w')
 update_board(game.board, [])
 running = True
 selected_square = None
@@ -121,7 +130,7 @@ while running:
                 running = False
     else:
         # Bot movement
-        time.sleep(1)
+        #time.sleep(1)
         if turn == 'w': action = game.white_move()
         else: action = game.black_move()
         if game.is_over(): running=False

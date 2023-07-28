@@ -1,12 +1,82 @@
 import chess
 import random
+import math
+import copy
 
 # Bot will select a random move
-def random_move(board):
+def random_move(board: chess.Board):
     random.seed()
     return str(random.choice(list(board.legal_moves)))
 
+def pseudo_move(board: chess.Board, move=None):
+    new_board = copy.copy(board)
+    if move: new_board.push(move)
+    return new_board
 
+def eval(board: chess.Board):
+    if board.is_checkmate():
+        #print(f"BAD NOONOO\n{board}")
+        if board.turn == chess.WHITE: return -math.inf
+        else: return math.inf
+    new_board = pseudo_move(board)
+    fen = new_board.board_fen()
+    wRook = fen.count('R')
+    wKnight = fen.count('N')
+    wQueen = fen.count('Q')
+    wBishop = fen.count('B')
+    wPawn = fen.count('P')
+    bRook = fen.count('r')
+    bKnight = fen.count('n')
+    bQueen = fen.count('q')
+    bBishop = fen.count('b')
+    bPawn = fen.count('p')
+    whiteValue = 50 * wRook + 30 * wKnight + 90 * wQueen + 32 * wBishop + 10 * wPawn
+    blackValue = 50 * bRook + 30 * bKnight + 90 * bQueen + 32 * bBishop + 10 * bPawn
+    return (whiteValue - blackValue) / 10
+
+def minimax(board: chess.Board):
+    max_depth = 3
+    turn = board.turn
+    best_score = math.inf
+    best_move = list(board.legal_moves)[0]
+
+    for move in list(board.legal_moves):
+        if turn == chess.WHITE:
+            move_score = mini(pseudo_move(board, move), max_depth, -math.inf, math.inf)
+            if move_score > best_score:
+                best_move = move
+                best_score = move_score
+        else:
+            move_score = maxi(pseudo_move(board, move), max_depth, -math.inf, math.inf)
+            #print(move_score, move)
+            if move_score < best_score:
+                best_move = move
+                best_score = move_score
+    print(best_score)
+    return str(best_move)
+
+def mini(board: chess.Board, depth: int, alpha, beta):
+    if not depth: return eval(board)
+    best_val = math.inf
+    board.turn = chess.BLACK
+    for move in list(board.legal_moves):
+        score = maxi(pseudo_move(board, move), depth - 1, alpha, beta)
+        best_val = min(best_val, score)
+        beta = min(beta, best_val)
+        if beta <= alpha: break
+    return best_val
+
+def maxi(board: chess.Board, depth, alpha, beta):
+    if not depth: return eval(board)
+    best_val = -math.inf
+    board.turn = chess.WHITE
+    for move in list(board.legal_moves):
+        score = mini(pseudo_move(board, move), depth - 1, alpha, beta)
+        best_val = max(best_val, score)
+        alpha = max(alpha, best_val)
+        if beta <= alpha: break
+
+    return best_val
 
 # Allows human player to make moves through the terminal
 def terminal_player(board):
@@ -35,6 +105,7 @@ class BotGame:
             print(self.outcome)
             return True
         else: return False
+
 
     # white_move(): Plays the move the player with the white pieces will make
     def white_move(self):
