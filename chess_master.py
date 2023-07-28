@@ -2,6 +2,7 @@ import chess
 import random
 import math
 import copy
+import time
 
 # Bot will select a random move
 def random_move(board: chess.Board):
@@ -37,9 +38,10 @@ def eval(board: chess.Board):
 def minimax(board: chess.Board):
     max_depth = 3
     turn = board.turn
-    best_score = math.inf
+    if turn == chess.WHITE: best_score = -math.inf
+    else: best_score = math.inf
     best_move = list(board.legal_moves)[0]
-
+    start_time = time.time()
     for move in list(board.legal_moves):
         if turn == chess.WHITE:
             move_score = mini(pseudo_move(board, move), max_depth, -math.inf, math.inf)
@@ -52,7 +54,10 @@ def minimax(board: chess.Board):
             if move_score < best_score:
                 best_move = move
                 best_score = move_score
-    print(best_score)
+    
+    total_time = round(time.time() - start_time, 3)
+    # CODE KNOWS EVAL IS BAD BUT STILL PLAYS???
+    print(f'Minimax w/ alpha beta pruning\nDepth: {max_depth}\nTime taken: {total_time} seconds\nEvaluation: {best_score}')
     return str(best_move)
 
 def mini(board: chess.Board, depth: int, alpha, beta):
@@ -63,7 +68,7 @@ def mini(board: chess.Board, depth: int, alpha, beta):
         score = maxi(pseudo_move(board, move), depth - 1, alpha, beta)
         best_val = min(best_val, score)
         beta = min(beta, best_val)
-        if beta <= alpha: break
+        if beta <= alpha or best_val == -math.inf: break
     return best_val
 
 def maxi(board: chess.Board, depth, alpha, beta):
@@ -74,7 +79,7 @@ def maxi(board: chess.Board, depth, alpha, beta):
         score = mini(pseudo_move(board, move), depth - 1, alpha, beta)
         best_val = max(best_val, score)
         alpha = max(alpha, best_val)
-        if beta <= alpha: break
+        if beta <= alpha or best_val == math.inf: break
 
     return best_val
 

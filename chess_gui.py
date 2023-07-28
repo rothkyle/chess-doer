@@ -87,7 +87,7 @@ def get_legal_moves(square, board):
     if moves: return moves
     else: return None
 
-game = cm.BotGame(cm.minimax, cm.minimax, 'w')
+game = cm.BotGame(cm.minimax, cm.random_move)
 update_board(game.board, [])
 running = True
 selected_square = None
