@@ -4,6 +4,15 @@ import math
 import copy
 import time
 
+PIECE_VALUES = {
+    'k': -900, 'K': 900,
+    'q': -90, 'Q': 90,
+    'r': -50, 'R': 50,
+    'b': -32, 'B': 32,
+    'n': -31,'N': 31,
+    'p': -10, 'P': 10
+}
+
 # Bot will select a random move
 def random_move(board: chess.Board):
     random.seed()
@@ -11,16 +20,25 @@ def random_move(board: chess.Board):
 
 def pseudo_move(board: chess.Board, move=None):
     new_board = copy.copy(board)
+    new_board.turn = board.turn
     if move: new_board.push(move)
     return new_board
 
 def eval(board: chess.Board):
+    total_moves = len(board.move_stack)
     if board.is_checkmate():
-        #print(f"BAD NOONOO\n{board}")
-        if board.turn == chess.WHITE: return -math.inf
-        else: return math.inf
-    new_board = pseudo_move(board)
-    fen = new_board.board_fen()
+        if board.turn == chess.WHITE: return (-1000 + total_moves)
+        else: return (1000 - total_moves)
+    if board.is_check():
+        if board.turn == chess.WHITE: return -.3
+        else: return .3
+    if board.outcome(): return 0.0
+    fen = board.board_fen()
+    '''
+    score = 0
+    for x in fen:
+        if x in PIECE_VALUES: score += PIECE_VALUES[x]
+    '''
     wRook = fen.count('R')
     wKnight = fen.count('N')
     wQueen = fen.count('Q')
@@ -31,12 +49,35 @@ def eval(board: chess.Board):
     bQueen = fen.count('q')
     bBishop = fen.count('b')
     bPawn = fen.count('p')
-    whiteValue = 50 * wRook + 30 * wKnight + 90 * wQueen + 32 * wBishop + 10 * wPawn
-    blackValue = 50 * bRook + 30 * bKnight + 90 * bQueen + 32 * bBishop + 10 * bPawn
+    whiteValue = 50 * wRook + 31 * wKnight + 90 * wQueen + 32 * wBishop + 10 * wPawn
+    blackValue = 50 * bRook + 31 * bKnight + 90 * bQueen + 32 * bBishop + 10 * bPawn
     return (whiteValue - blackValue) / 10
 
+def get_piece_val(piece: chess.Piece):
+    if not piece: return 0
+    return PIECE_VALUES[piece.symbol()]
+
+def sort_moves(board: chess.Board):
+    legal_moves = list(board.legal_moves)
+    if not legal_moves: return []
+    move_estimates = []
+    for move in legal_moves:
+        estimate = 0
+        if board.is_capture(move):
+            start = board.piece_at(chess.parse_square(str(move)[0:2]))
+            target = board.piece_at(chess.parse_square(str(move)[2:4]))
+            estimate += get_piece_val(target) + get_piece_val(start)
+        if board.is_capture(move): estimate += 1
+        if board.is_into_check(move): estimate += 1
+        move_estimates.append((estimate, move))
+    # Sort moves by their estimated value
+    move_estimates.sort(reverse=True, key=lambda x: x[0])
+    # Extract the moves from this list
+    move_estimates = [x[1] for x in move_estimates]
+    return move_estimates
+'''
 def minimax(board: chess.Board):
-    max_depth = 3
+    max_depth = 5
     turn = board.turn
     if turn == chess.WHITE: best_score = -math.inf
     else: best_score = math.inf
@@ -81,6 +122,49 @@ def maxi(board: chess.Board, depth, alpha, beta):
         alpha = max(alpha, best_val)
         if beta <= alpha or best_val == math.inf: break
 
+    return best_val
+'''
+
+def minimax(board: chess.Board):
+    max_depth = 5
+    start_time = time.time()
+    if board.turn == chess.WHITE:
+        best_move = maxi(board, max_depth, -math.inf, math.inf)
+    else:
+        best_move = mini(board, max_depth, -math.inf, math.inf)
+    
+    total_time = round(time.time() - start_time, 3)
+    print(f'Minimax w/ AB pruning\nDepth: {max_depth}\nTime taken: {total_time} seconds\nEvaluation: {best_move[0]}')
+    return str(best_move[1])
+
+# mini() and maxi() return (best_eval, best_move) from position
+def mini(board: chess.Board, depth: int, alpha, beta):
+    board.turn = chess.BLACK
+    if not depth or not board.legal_moves:
+        # TODO: check for free capture
+        return (eval(board), board.pop())
+    best_val = (math.inf, list(board.legal_moves)[0])
+    sorted_moves = sort_moves(board)
+    for move in sorted_moves:
+        if move not in list(board.legal_moves): continue
+        score = (maxi(pseudo_move(board, move), depth - 1, alpha, beta)[0], move)
+        best_val = min([best_val, score], key = lambda t: t[0])
+        beta = min(beta, best_val[0])
+        if beta <= alpha: break
+
+    return best_val
+
+def maxi(board: chess.Board, depth: int, alpha, beta):
+    if not depth or not board.legal_moves:
+        return (eval(board), board.pop())
+    best_val = (-math.inf, list(board.legal_moves)[0])
+    sorted_moves = sort_moves(board)
+    for move in sorted_moves:
+        if move not in list(board.legal_moves): continue
+        score = (mini(pseudo_move(board, move), depth - 1, alpha, beta)[0], move)
+        best_val = max([best_val, score], key = lambda t: t[0])
+        alpha = max(alpha, best_val[0])
+        if beta <= alpha: break
     return best_val
 
 # Allows human player to make moves through the terminal

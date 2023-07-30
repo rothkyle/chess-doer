@@ -1,7 +1,6 @@
 import pygame
 import chess
 import chess_master as cm
-import time
 
 pygame.init()
 WIDTH = 800
@@ -87,7 +86,8 @@ def get_legal_moves(square, board):
     if moves: return moves
     else: return None
 
-game = cm.BotGame(cm.minimax, cm.random_move)
+game = cm.BotGame(cm.random_move, cm.minimax)
+#game.board.set_fen("6R1/P2k4/r7/5N1P/r7/p7/7K/8 w - -")
 update_board(game.board, [])
 running = True
 selected_square = None
@@ -140,5 +140,4 @@ while running:
         if action == 'check': pygame.mixer.Sound.play(CHECK_SOUND)
         elif action == 'cap': pygame.mixer.Sound.play(CAPTURE_SOUND)
         else: pygame.mixer.Sound.play(NO_CAPTURE_SOUND)
-        update_board(game.board, [])
-        
+        update_board(game.board, [])        
