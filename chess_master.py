@@ -63,10 +63,12 @@ def sort_moves(board: chess.Board):
     move_estimates = []
     for move in legal_moves:
         estimate = 0
+        '''
         if board.is_capture(move):
             start = board.piece_at(chess.parse_square(str(move)[0:2]))
             target = board.piece_at(chess.parse_square(str(move)[2:4]))
             estimate += get_piece_val(target) + get_piece_val(start)
+        '''
         if board.is_capture(move): estimate += 1
         if board.is_into_check(move): estimate += 1
         move_estimates.append((estimate, move))
